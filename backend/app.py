@@ -4,6 +4,46 @@ import numpy as np
 import joblib  # For loading the serialized model
 import pandas as pd  # For data manipulation
 from flask import Flask, request, jsonify  # For creating the Flask API
+from datetime import datetime # For Store_Establishment_Year feature engineering
+
+# MRP_BIN_EDGES must be defined before engineer_features if it's used within
+mrp_quantiles = np.array([126.2225, 146.585, 167.505]) # Copied from notebook cell 'fet3-MuLqbBL'
+MRP_BIN_EDGES = [-np.inf, mrp_quantiles[0], mrp_quantiles[1], mrp_quantiles[2], np.inf]
+
+def engineer_features(df, mrp_bin_edges):
+    df = df.copy()
+    # Dynamically fetch current year (e.g., 2026, 2027, etc.)
+    current_year = datetime.now().year
+
+    # 1. Store Age with fallback
+    if 'Store_Establishment_Year' in df.columns:
+        df['Store_Age'] = current_year - df['Store_Establishment_Year']
+    else:
+        # Assign NaN so SimpleImputer can handle it cleanly downstream
+        df['Store_Age'] = np.nan
+
+    # 2. Product Category with fallback
+    if 'Product_Id' in df.columns:
+        df['Product_Category'] = df['Product_Id'].astype(str).str[:2]
+    else:
+        df['Product_Category'] = np.nan
+
+    # 3. MRP_BIN with fallback
+    if 'Product_MRP' in df.columns and mrp_bin_edges is not None:
+        df['MRP_CAT'] = pd.cut(
+            df['Product_MRP'],
+            bins=mrp_bin_edges,
+            labels=['Low', 'Medium', 'High', 'Premium'],
+            include_lowest=True
+        )
+    else:
+        df['MRP_CAT'] = np.nan
+
+    # Drop raw columns if present
+    cols_to_drop = ['Product_Id', 'Store_Establishment_Year']
+    df = df.drop(columns=cols_to_drop, errors='ignore')
+    return df
+# --- End of Feature Engineering components ---
 
 # Initialize the Flask application
 product_store_sales_predictor_api = Flask("SuperKart Product Store Sales Predictor")
@@ -13,6 +53,7 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), "product_store_sales_model_
 
 
 # Load the trained machine learning model
+# This ensures that the FunctionTransformer within the pipeline can find its dependencies.
 model = joblib.load(MODEL_PATH)
 
 # Define a route for the home page (GET request)
@@ -56,10 +97,10 @@ def product_store_sales():
     # Make prediction
     predicted_product_store_sales = model.predict(input_data_df)[0]
 
-    
+
     # Convert predicted_price to Python float
     predicted_product_store_sales = round(float(predicted_product_store_sales), 2)
-    
+
 
     # Return the actual price
     return jsonify({'Predicted Product store sales (in dollars)': predicted_product_store_sales})
