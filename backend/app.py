@@ -1,4 +1,5 @@
 # Import necessary libraries
+import os
 import numpy as np
 import joblib  # For loading the serialized model
 import pandas as pd  # For data manipulation
@@ -7,8 +8,12 @@ from flask import Flask, request, jsonify  # For creating the Flask API
 # Initialize the Flask application
 product_store_sales_predictor_api = Flask("SuperKart Product Store Sales Predictor")
 
+# Resolve the model path relative to this file so it works both locally and in Docker
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "product_store_sales_model_v1_0.joblib")
+
+
 # Load the trained machine learning model
-model = joblib.load("backend_files/product_store_sales_model_v1_0.joblib")
+model = joblib.load(MODEL_PATH)
 
 # Define a route for the home page (GET request)
 @product_store_sales_predictor_api.get('/')
