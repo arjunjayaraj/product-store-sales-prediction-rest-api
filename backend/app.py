@@ -39,6 +39,20 @@ def engineer_features(df, mrp_bin_edges):
     else:
         df['MRP_CAT'] = np.nan
 
+    PERISHABLE_TYPES = [
+    'Dairy', 'Meat', 'Fruits and Vegetables', 'Frozen Foods', 
+    'Baking Goods', 'Bread/Bakery', 'Seafood']
+
+    # Product Type Category (Perishable vs Non-Perishable)
+    if 'Product_Type' in df.columns:
+        df['Product_Type_Category'] = np.where(
+            df['Product_Type'].isin(PERISHABLE_TYPES),
+            'Perishable',
+            'Non-Perishable'
+        )
+    else:
+        df['Product_Type_Category'] = np.nan
+
     # Drop raw columns if present
     cols_to_drop = ['Product_Id', 'Store_Establishment_Year']
     df = df.drop(columns=cols_to_drop, errors='ignore')
