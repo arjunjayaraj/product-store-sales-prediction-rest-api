@@ -1,5 +1,7 @@
 # Import necessary libraries
 import os
+import sys
+import __main__
 import numpy as np
 import joblib  # For loading the serialized model
 import pandas as pd  # For data manipulation
@@ -68,6 +70,8 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), "product_store_sales_model_
 
 # Load the trained machine learning model
 # This ensures that the FunctionTransformer within the pipeline can find its dependencies.
+# Some older pickled models expect the custom feature function under __main__.
+setattr(sys.modules['__main__'], 'engineer_features', engineer_features)
 model = joblib.load(MODEL_PATH)
 
 # Define a route for the home page (GET request)
